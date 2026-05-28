@@ -48,14 +48,15 @@ PERSONALITY_PATH = Path("personality.txt")
 if PERSONALITY_PATH.exists():
     PERSONALITY_TEXT = PERSONALITY_PATH.read_text(encoding="utf-8")
 else:
-    PERSONALITY_TEXT = "Casual, concise crypto trader. Keep replies sharp and on-point. Use crypto/forum language."
+    PERSONALITY_TEXT = "Professional crypto assistant. Keep replies sharp, accurate, and technical."
 
-# Crypto payment keywords for detection
+# Crypto payment keywords - specific coins and payment terms
 CRYPTO_KEYWORDS = {
+    # Cryptocurrencies
+    "sol", "btc", "eth", "ltc", "xmr",
+    # Payment related
     "addr", "address", "coin", "wallet", "send", "receive", "payment", 
-    "pay", "btc", "eth", "sol", "usdt", "crypto", "blockchain", "tx", "txid",
-    "hash", "deposit", "withdrawal", "hodl", "pump", "dump", "moon", "lambo",
-    "chart", "price", "buy", "sell", "trade", "token", "nft", "defi",
+    "pay", "crypto", "blockchain", "tx", "txid", "hash", "deposit", "withdrawal",
 }
 
 
@@ -77,12 +78,12 @@ def build_system_prompt(username: str) -> str:
     """Build system prompt with crypto trading focus."""
     return (
         f"{PERSONALITY_TEXT}\n\n"
-        "You are a crypto trading assistant for Telegram forums.\n"
+        "You are a crypto trading assistant for Telegram.\n"
         f"Speaking with @{username}.\n"
-        "Respond like a crypto trader - sharp, direct, no fluff.\n"
-        "Use forum/crypto language naturally (moon, pump, hodl, etc).\n"
+        "Respond professionally - sharp, accurate, and technical.\n"
+        "Use proper crypto terminology (SOL, BTC, ETH, LTC, XMR, etc).\n"
         "Never expose API keys or sensitive data.\n"
-        "Stay informed, witty, and context-aware.\n"
+        "Stay informed and direct.\n"
         f"Negotiation policy:\n{price_policy.guidance()}\n"
     )
 
@@ -109,7 +110,7 @@ async def cmd_help() -> str:
         "🚀 Crypto Trading Copilot:\n"
         "/price - Check pricing\n"
         "/help - This message\n\n"
-        "Drop your questions, trades, charts, anything crypto! 📈"
+        "Drop your crypto questions, trades, anything! 📈"
     )
 
 
@@ -176,7 +177,7 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
     policy_hint = ""
     if offer is not None:
         ok, note = price_policy.validate_offer(offer)
-        policy_hint = f"\n\n💰 Your offer: ${offer:.2f} - {'✅ LFG' if ok else '❌ Not there yet'}: {note}"
+        policy_hint = f"\n\nPrice check ${offer:.2f}: {'✅ Accepted' if ok else '❌ Below floor'} - {note}"
         system_prompt += policy_hint
 
     # Generate AI response
@@ -189,7 +190,7 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
         )
     except Exception as exc:
         logger.exception("AI generation failed: %s", exc)
-        response = "yo, got a glitch rn. hit me back in a sec ⚡"
+        response = "Error generating response. Try again."
         await event.reply(response)
         return
 
@@ -203,7 +204,7 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
         logger.info(f"Response sent to @{sender_username}")
     except Exception as exc:
         logger.exception("Failed to send response: %s", exc)
-        await event.reply("can't send rn, something broke 🛑")
+        await event.reply("Failed to send response.")
 
 
 async def main():
