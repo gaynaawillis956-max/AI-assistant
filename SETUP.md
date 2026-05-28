@@ -24,56 +24,61 @@ Edit `.env` and set:
 - `OPENROUTER_API_KEY`
 - `ADMIN_USERNAME`
 
-Optional tuning:
+Optional:
 
-- `MIN_PRICE`
-- `TARGET_PRICE`
-- `MAX_DISCOUNT_PERCENT`
+- `SMTP_EMAIL`, `SMTP_PASSWORD` (for email confirmations)
+- `MIN_PRICE`, `TARGET_PRICE`, `MAX_DISCOUNT_PERCENT`
 - `OPENROUTER_MODEL`
 
 ## 3) Run
 
 ```powershell
 venv\Scripts\activate
-py -3 main.py
+python main.py
 ```
 
 ## 4) Admin commands in Telegram
 
-- `/pause`
-- `/resume`
-- `/memory <username> <text>`
-- `/clear <username>`
-- `/style <new style>`
-- `/price`
-- `/stats`
-- `/approve <draft_id|chat_id>`
-- `/ignore [draft_id]`
+- `/inventory` - List available products
+- `/check <product>` - Check specific product
+- `/add <name>|<price>|<stock>` - Add product
+- `/update <name>|<stock>` - Update stock
+- `/sales` - View recent sales
+- `/price` - Show pricing policy
+- `/help` - Show help
 
 ## 5) Database
 
 The bot uses SQLite to store:
 
-- Message history per user
-- Buyer information and notes
-- Settings and preferences
-- Draft messages pending approval
+- Product inventory (name, price, stock)
+- Sales history (customer, product, amount, status)
+- Customer inquiries (tracking)
 
-Database file is created automatically at `database.db` (or custom `DATABASE_PATH`).
+Database file: `inventory.db` (auto-created)
 
-## 6) Troubleshooting
+## 6) How it works
+
+1. **Customer messages you** → Bot receives inquiry
+2. **AI generates response** → Sharp, professional crypto seller tone
+3. **Payment keywords detected** → Bot adds crypto payment methods
+4. **Admin manages inventory** → `/add`, `/update` commands
+5. **Sales tracked** → `/sales` command shows all transactions
+6. **Email confirmations** (optional) → SMTP sends order/credential emails
+
+## 7) Troubleshooting
 
 ### "Missing required environment variable"
-Ensure all required variables are set in `.env` and the file is in the project root.
+Ensure all required vars are in `.env`.
 
 ### "Telethon connection failed"
-- Verify `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, and `TELEGRAM_PHONE` are correct.
-- First run may require phone verification code input.
+- Verify `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_PHONE`
+- First run may require phone verification code
 
 ### "OpenRouter API error"
-- Check that `OPENROUTER_API_KEY` is valid and has available credits.
-- Verify the model specified in `OPENROUTER_MODEL` exists and is accessible.
+- Check `OPENROUTER_API_KEY` is valid and has credits
+- Verify model exists: `qwen/qwen3`
 
-### Draft not appearing in Saved Messages
-- Check bot has permission to send to your account.
-- Verify `/stats` shows drafts are being created.
+### Database not created
+- Check folder permissions
+- Verify `DATABASE_PATH` is writable
