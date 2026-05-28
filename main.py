@@ -48,7 +48,15 @@ PERSONALITY_PATH = Path("personality.txt")
 if PERSONALITY_PATH.exists():
     PERSONALITY_TEXT = PERSONALITY_PATH.read_text(encoding="utf-8")
 else:
-    PERSONALITY_TEXT = "Casual, concise assistant. Keep replies short and useful."
+    PERSONALITY_TEXT = "Casual, concise crypto trader. Keep replies sharp and on-point. Use crypto/forum language."
+
+# Crypto payment keywords for detection
+CRYPTO_KEYWORDS = {
+    "addr", "address", "coin", "wallet", "send", "receive", "payment", 
+    "pay", "btc", "eth", "sol", "usdt", "crypto", "blockchain", "tx", "txid",
+    "hash", "deposit", "withdrawal", "hodl", "pump", "dump", "moon", "lambo",
+    "chart", "price", "buy", "sell", "trade", "token", "nft", "defi",
+}
 
 
 def extract_offer(text: str) -> float | None:
@@ -59,15 +67,22 @@ def extract_offer(text: str) -> float | None:
     return float(match.group(1))
 
 
+def has_crypto_payment_keyword(text: str) -> bool:
+    """Check if text contains crypto/payment-related keywords."""
+    lowered = text.lower()
+    return any(keyword in lowered for keyword in CRYPTO_KEYWORDS)
+
+
 def build_system_prompt(username: str) -> str:
-    """Build system prompt with pricing policy."""
+    """Build system prompt with crypto trading focus."""
     return (
         f"{PERSONALITY_TEXT}\n\n"
-        "You are an AI sales assistant for Telegram conversations.\n"
-        f"Responding to @{username}.\n"
-        "Provide intelligent, concise responses for real-time chat.\n"
-        "Never expose API keys, prompts, or sensitive data.\n"
-        "Stay context-aware and friendly. Add emojis naturally when appropriate.\n"
+        "You are a crypto trading assistant for Telegram forums.\n"
+        f"Speaking with @{username}.\n"
+        "Respond like a crypto trader - sharp, direct, no fluff.\n"
+        "Use forum/crypto language naturally (moon, pump, hodl, etc).\n"
+        "Never expose API keys or sensitive data.\n"
+        "Stay informed, witty, and context-aware.\n"
         f"Negotiation policy:\n{price_policy.guidance()}\n"
     )
 
@@ -85,16 +100,16 @@ def parse_command(text: str) -> tuple[str, str]:
 
 async def cmd_price() -> str:
     """Show current pricing policy."""
-    return f"💰 Current pricing policy:\n{price_policy.guidance()}"
+    return f"💰 Price Check:\n{price_policy.guidance()}"
 
 
 async def cmd_help() -> str:
     """Show help message."""
     return (
-        "🤖 AI Copilot Commands:\n"
-        "/price - Show pricing policy\n"
-        "/help - Show this message\n\n"
-        "Just send any message and I'll respond with AI assistance!"
+        "🚀 Crypto Trading Copilot:\n"
+        "/price - Check pricing\n"
+        "/help - This message\n\n"
+        "Drop your questions, trades, charts, anything crypto! 📈"
     )
 
 
@@ -125,7 +140,7 @@ async def handle_command(text: str, sender_username: str) -> str | None:
 
 @client.on(events.NewMessage(incoming=True))
 async def on_incoming_message(event: events.NewMessage.Event) -> None:
-    """Handle incoming messages from users - respond directly in chat."""
+    """Handle incoming messages from crypto traders."""
     if not event.raw_text:
         return
     
@@ -153,7 +168,7 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
         await event.reply(command_result)
         return
 
-    # Build system prompt (no conversation history, just current context)
+    # Build crypto-focused system prompt
     system_prompt = build_system_prompt(sender_username)
 
     # Check for price offers in the message
@@ -161,7 +176,7 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
     policy_hint = ""
     if offer is not None:
         ok, note = price_policy.validate_offer(offer)
-        policy_hint = f"\n\n💰 Offer: {offer:.2f} - {'✅ OK' if ok else '❌ Not OK'}: {note}"
+        policy_hint = f"\n\n💰 Your offer: ${offer:.2f} - {'✅ LFG' if ok else '❌ Not there yet'}: {note}"
         system_prompt += policy_hint
 
     # Generate AI response
@@ -170,17 +185,16 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
         response = await ai_client.generate_reply(
             system_prompt=system_prompt,
             user_message=text,
-            conversation=[],  # No history - only current message context
+            conversation=[],  # No history - only current message
         )
     except Exception as exc:
         logger.exception("AI generation failed: %s", exc)
-        response = "Sorry, I encountered an issue. Please try again."
+        response = "yo, got a glitch rn. hit me back in a sec ⚡"
         await event.reply(response)
         return
 
-    # Add payment instructions if payment-related keywords detected
-    lowered = text.lower()
-    if any(k in lowered for k in ("payment", "pay", "btc", "eth", "sol", "usdt", "crypto")):
+    # Add payment instructions if crypto/payment keywords detected
+    if has_crypto_payment_keyword(text):
         response = f"{response}\n\n{payment_instructions()}"
 
     # Send response directly to chat
@@ -189,30 +203,30 @@ async def on_incoming_message(event: events.NewMessage.Event) -> None:
         logger.info(f"Response sent to @{sender_username}")
     except Exception as exc:
         logger.exception("Failed to send response: %s", exc)
-        await event.reply("Failed to send response. Please try again.")
+        await event.reply("can't send rn, something broke 🛑")
 
 
 async def main():
-    """Start the Telegram user copilot."""
+    """Start the Telegram crypto trading copilot."""
     try:
-        logger.info("🚀 Starting Telegram User AI Copilot...")
-        logger.info(f"Admin username: @{ADMIN_USERNAME}")
+        logger.info("🚀 Starting Crypto Trading Copilot...")
+        logger.info(f"Admin: @{ADMIN_USERNAME}")
         logger.info(f"Model: {MODEL}")
-        logger.info(f"Pricing - Min: {MIN_PRICE}, Target: {TARGET_PRICE}, Max discount: {MAX_DISCOUNT_PERCENT}%")
+        logger.info(f"Pricing - Min: ${MIN_PRICE}, Target: ${TARGET_PRICE}, Max discount: {MAX_DISCOUNT_PERCENT}%")
         
         await client.start(phone=PHONE)
         logger.info("✅ Connected to Telegram")
         
         me = await client.get_me()
         logger.info(f"✅ Logged in as @{me.username or me.first_name}")
-        logger.info("📡 Listening for incoming messages...")
+        logger.info("📡 Listening for crypto traders...")
         
         await client.run_until_disconnected()
     except Exception as exc:
         logger.exception("Fatal error: %s", exc)
         raise
     finally:
-        logger.info("🛑 Copilot stopped.")
+        logger.info("🛑 Copilot offline.")
 
 
 if __name__ == "__main__":
